@@ -14,7 +14,7 @@ def writePolyData(polyDataList, outFile):
         print i, type(polyData)
         mb.SetBlock(i, polyData)
 
-    writer = vtk.	vtkXMLMultiBlockDataWriter()
+    writer = vtk.vtkXMLMultiBlockDataWriter()
     writer.SetFileName(outFile)
     writer.SetInput(mb)
     writer.Write()
@@ -81,11 +81,14 @@ def createPolyData(faces, vtList, verts, tcoords):
 
 def initMaterialsLibrary(materials):
 
+    print 'initMaterialsLibrary(): Method called!'
+
     global materialsLibrary
     materialsLibrary = {}
 
     for material in materials:
-        materialsLibrary[material.name] = material
+        print "initMaterialsLibrary(): Adding material {0}".format(material.name)
+        materialsLibrary[material.name + "-material"] = material
 
 
 def addTextureMetaData(polyData, materialName):
@@ -105,21 +108,30 @@ def addTextureMetaData(polyData, materialName):
 
 
 def colladaGeometryToPolyData(geometry, transform):
-
+    print 'colladaGeometryToPolyData(): Method called!'
+    # print type(geometry.primitives)
+    print "colladaGeometryToPolyData(): Length of geometry.primitives: {0}".format(len(geometry.primitives))
     polyDataList = []
 
     for primitives in geometry.primitives:
-        assert type(primitives) == collada.triangleset.TriangleSet
+        print "colladaGeometryToPolyData(): type of primitives: {0}".format(type(primitives))
+        if not type(primitives) == collada.polylist.Polylist:
+            continue
 
-        polyData = colladaTriangleSetToPolyData(primitives)
+        print "colladaGeometryToPolyData(): length of primitives.triangleset(): {0}".format(len(primitives.triangleset()))
+        if not type(primitives.triangleset()) == collada.triangleset.TriangleSet:
+            continue
+
+        polyData = colladaTriangleSetToPolyData(primitives.triangleset())
         if not polyData:
             continue
 
-        addTextureMetaData(polyData, primitives.material)
+        addTextureMetaData(polyData, primitives.triangleset().material)
 
         polyData = transformPolyData(polyData, transform)
         polyDataList.append(polyData)
 
+    print "colladaGeometryToPolyData(): Length of polyDataList: {0}".format(len(polyDataList))
     return polyDataList
 
 
@@ -227,6 +239,7 @@ def colladaToPolyData(inFile, outFile):
     polyDataList = colladaSceneToPolyData(f.scene)
 
     if not polyDataList:
+        print 'no polyDataList'
         return
 
     print 'writing:', outFile
@@ -242,5 +255,4 @@ if __name__ == '__main__':
     for inFile in sys.argv[1:]:
         outFile = os.path.splitext(inFile)[0] + '.vtm'
         colladaToPolyData(inFile, outFile)
-
 
